@@ -1,6 +1,8 @@
-const path    = require( 'path' );
-const express = require( 'express' );
-const hbs     = require( 'hbs' );
+const path     = require( 'path' );
+const express  = require( 'express' );
+const hbs      = require( 'hbs' );
+const geocode  = require( './util/geocode');
+const forecast = require( './util/forecast');
 
 const app = express();
 
@@ -44,9 +46,33 @@ app.get( '/help', ( req, res ) => {
 });
 
 app.get( '/weather', ( req, res ) => {
-	res.send({
-		temperature: 20,
-		location: 'Sarajevo',
+	if ( ! req.query.address ) {
+		res.send({
+			error: 'Address must be provided.',
+		});
+
+		return;
+	}
+
+	geocode( req.query.address, ( error, { latitude, longitude, location } = {} ) => {
+		if ( error ) {
+			res.send( { error } );
+			return;
+		}
+
+		forecast( latitude, longitude, ( error, { description, temperature, feelsLike } = {} ) => {
+			if ( error ) {
+				res.send( { error } );
+				return;
+			}
+
+			res.send({
+				description,
+				temperature,
+				feelsLike,
+				location
+			})
+		});
 	});
 });
 
